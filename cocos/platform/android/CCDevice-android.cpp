@@ -131,6 +131,11 @@ int Device::getDevicePixelRatio()
     return 1;
 }
 
+std::string Device::getResString(const std::string& key)
+{
+    return JniHelper::callStaticStringMethod("org.cocos2dx.javascript.AppBridge", "getRes", key.c_str());
+}
+
 NS_CC_END
 
 #endif // CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID

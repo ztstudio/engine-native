@@ -167,3 +167,5 @@ tests/cpp-tests/Resources/audio
 
 cocos2d-x-lite-external-*
 *.zip
+.idea/
+.gradle/

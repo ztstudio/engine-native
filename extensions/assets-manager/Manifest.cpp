@@ -25,11 +25,11 @@
  ****************************************************************************/
 
 #include "Manifest.h"
-#include "json/prettywriter.h"
-#include "json/stringbuffer.h"
 
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
+#include "cocos/base/ccMacros.h"
+#include "platform/CCDevice.h"
 
 #define KEY_VERSION             "version"
 #define KEY_PACKAGE_URL         "packageUrl"
@@ -51,6 +51,15 @@
 #define KEY_DOWNLOAD_STATE      "downloadState"
 
 NS_CC_EXT_BEGIN
+
+static void changeHotUrl(std::string& url, const std::string& hotroot)
+{
+    auto index = url.find("/hotupdate");
+    if (index != std::string::npos)
+    {
+        url.replace(0, index, hotroot);
+    }
+}
 
 static int cmpVersion(const std::string& v1, const std::string& v2)
 {
@@ -82,10 +91,14 @@ Manifest::Manifest(const std::string& manifestUrl/* = ""*/)
 , _remoteVersionUrl("")
 , _version("")
 , _engineVer("")
+, assets(nullptr)
 {
     // Init variables
     _fileUtils = FileUtils::getInstance();
-    if (manifestUrl.size() > 0)
+    _hotupdateRoot = Device::getResString("weburl");
+    if (!_hotupdateRoot.empty() && _hotupdateRoot.back() == '/') // 去掉尾部的'/'
+        _hotupdateRoot.pop_back();
+    if (!manifestUrl.empty())
         parseFile(manifestUrl);
 }
 
@@ -134,14 +147,14 @@ void Manifest::loadJsonFromString(const std::string& content)
     else
     {
         // Parse file with rapid json
-        _json.Parse<0>(content.c_str());
-        // Print error
-        if (_json.HasParseError()) {
-            size_t offset = _json.GetErrorOffset();
-            if (offset > 0)
-                offset--;
-            std::string errorSnippet = content.substr(offset, 10);
-            CCLOG("File parse error %d at <%s>\n", _json.GetParseError(), errorSnippet.c_str());
+        try {
+            _json = _json.parse(content.c_str());
+            if(_json.is_object()) {
+                assets = &_json[KEY_ASSETS];
+            }
+        }
+        catch (const std::exception& e) {
+            CCLOGERROR("File parse error %s", e.what());
         }
     }
 }
@@ -150,7 +163,7 @@ void Manifest::parseVersion(const std::string& versionUrl)
 {
     loadJson(versionUrl);
     
-    if (_json.IsObject())
+    if (_json.is_object())
     {
         loadVersion(_json);
     }
@@ -160,7 +173,7 @@ void Manifest::parseFile(const std::string& manifestUrl)
 {
     loadJson(manifestUrl);
 	
-    if (!_json.HasParseError() && _json.IsObject())
+    if (_json.is_object())
     {
         // Register the local manifest root
         size_t found = manifestUrl.find_last_of("/\\");
@@ -176,7 +189,7 @@ void Manifest::parseJSONString(const std::string& content, const std::string& ma
 {
     loadJsonFromString(content);
     
-    if (!_json.HasParseError() && _json.IsObject())
+    if (_json.is_object())
     {
         // Register the local manifest root
         _manifestRoot = manifestRoot;
@@ -195,16 +208,9 @@ bool Manifest::isLoaded() const
 
 void Manifest::setUpdating(bool updating)
 {
-    if (_loaded && _json.IsObject())
+    if (_loaded && _json.is_object())
     {
-        if (_json.HasMember(KEY_UPDATING) && _json[KEY_UPDATING].IsBool())
-        {
-            _json[KEY_UPDATING].SetBool(updating);
-        }
-        else
-        {
-            _json.AddMember<bool>(KEY_UPDATING, updating, _json.GetAllocator());
-        }
+        _json[KEY_UPDATING] = updating;
         _updating = updating;
     }
 }
@@ -432,28 +438,13 @@ void Manifest::setAssetDownloadState(const std::string &key, const Manifest::Dow
     if (valueIt != _assets.end())
     {
         valueIt->second.downloadState = state;
-        
         // Update json object
-        if(_json.IsObject())
+        if(assets != nullptr)
         {
-            if ( _json.HasMember(KEY_ASSETS) )
+            auto asset = assets->find(key);
+            if (asset != assets->end())
             {
-                rapidjson::Value &assets = _json[KEY_ASSETS];
-                if (assets.IsObject())
-                {
-                    if (assets.HasMember(key.c_str()))
-                    {
-                        rapidjson::Value &entry = assets[key.c_str()];
-                        if (entry.HasMember(KEY_DOWNLOAD_STATE) && entry[KEY_DOWNLOAD_STATE].IsInt())
-                        {
-                            entry[KEY_DOWNLOAD_STATE].SetInt((int) state);
-                        }
-                        else
-                        {
-                            entry.AddMember<int>(KEY_DOWNLOAD_STATE, (int)state, _json.GetAllocator());
-                        }
-                    }
-                }
+                (*asset)[KEY_DOWNLOAD_STATE] = (int)state;
             }
         }
     }
@@ -482,156 +473,90 @@ void Manifest::clear()
     }
 }
 
-Manifest::Asset Manifest::parseAsset(const std::string &path, const rapidjson::Value &json)
-{
+Manifest::Asset Manifest::parseAsset(const std::string &path, const nlohmann::json &json) {
     Asset asset;
     asset.path = path;
-	
-    if ( json.HasMember(KEY_MD5) && json[KEY_MD5].IsString() )
-    {
-        asset.md5 = json[KEY_MD5].GetString();
-    }
-    else asset.md5 = "";
-    
-    if ( json.HasMember(KEY_PATH) && json[KEY_PATH].IsString() )
-    {
-        asset.path = json[KEY_PATH].GetString();
-    }
-    
-    if ( json.HasMember(KEY_COMPRESSED) && json[KEY_COMPRESSED].IsBool() )
-    {
-        asset.compressed = json[KEY_COMPRESSED].GetBool();
-    }
-    else asset.compressed = false;
-    
-    if ( json.HasMember(KEY_SIZE) && json[KEY_SIZE].IsInt() )
-    {
-        asset.size = json[KEY_SIZE].GetInt();
-    }
-    else asset.size = 0;
-    
-    if ( json.HasMember(KEY_DOWNLOAD_STATE) && json[KEY_DOWNLOAD_STATE].IsInt() )
-    {
-        asset.downloadState = (json[KEY_DOWNLOAD_STATE].GetInt());
-    }
-    else asset.downloadState = DownloadState::UNMARKED;
-    
+    tryGetTo(json, KEY_MD5, asset.md5);
+    tryGetTo(json, KEY_PATH, asset.path);
+    tryGetTo(json, KEY_COMPRESSED, asset.compressed);
+    tryGetTo(json, KEY_SIZE, asset.size);
+    tryGetTo(json, KEY_DOWNLOAD_STATE, asset.downloadState);
     return asset;
 }
 
-void Manifest::loadVersion(const rapidjson::Document &json)
-{
+void Manifest::loadVersion(const nlohmann::json &json) {
     // Retrieve remote manifest url
-    if ( json.HasMember(KEY_MANIFEST_URL) && json[KEY_MANIFEST_URL].IsString() )
-    {
-        _remoteManifestUrl = json[KEY_MANIFEST_URL].GetString();
-    }
-    
+    tryGetTo(json, KEY_MANIFEST_URL, _remoteManifestUrl);
+    changeHotUrl(_remoteManifestUrl, _hotupdateRoot); // 修改热更新地址
     // Retrieve remote version url
-    if ( json.HasMember(KEY_VERSION_URL) && json[KEY_VERSION_URL].IsString() )
-    {
-        _remoteVersionUrl = json[KEY_VERSION_URL].GetString();
-    }
-    
+    tryGetTo(json, KEY_VERSION_URL, _remoteVersionUrl);
+    changeHotUrl(_remoteVersionUrl, _hotupdateRoot); // 修改热更新地址
     // Retrieve local version
-    if ( json.HasMember(KEY_VERSION) && json[KEY_VERSION].IsString() )
-    {
-        _version = json[KEY_VERSION].GetString();
-    }
-    
+    tryGetTo(json, KEY_VERSION, _version);
+
     // Retrieve local group version
-    if ( json.HasMember(KEY_GROUP_VERSIONS) )
     {
-        const rapidjson::Value& groupVers = json[KEY_GROUP_VERSIONS];
-        if (groupVers.IsObject())
+        auto it = json.find(KEY_GROUP_VERSIONS);
+        if (it !=json.end())
         {
-            for (rapidjson::Value::ConstMemberIterator itr = groupVers.MemberBegin(); itr != groupVers.MemberEnd(); ++itr)
+            auto groupVers = it.value();
             {
-                std::string group = itr->name.GetString();
-                std::string version = "0";
-                if (itr->value.IsString())
-                {
-                    version = itr->value.GetString();
+                for (auto itr = groupVers.begin(); itr != groupVers.end(); ++itr) {
+                    _groups.push_back(itr.key());
+                    _groupVer.emplace(itr.key(), itr.value().get<std::string>());
                 }
-                _groups.push_back(group);
-                _groupVer.emplace(group, version);
             }
         }
     }
-    
+
     // Retrieve local engine version
-    if ( json.HasMember(KEY_ENGINE_VERSION) && json[KEY_ENGINE_VERSION].IsString() )
-    {
-        _engineVer = json[KEY_ENGINE_VERSION].GetString();
-    }
-    
+    tryGetTo(json, KEY_ENGINE_VERSION, _engineVer);
+
     // Retrieve updating flag
-    if ( json.HasMember(KEY_UPDATING) && json[KEY_UPDATING].IsBool() )
-    {
-        _updating = json[KEY_UPDATING].GetBool();
-    }
-    
+    tryGetTo(json, KEY_UPDATING, _updating);
+
     _versionLoaded = true;
 }
 
-void Manifest::loadManifest(const rapidjson::Document &json)
-{
+void Manifest::loadManifest(const nlohmann::json &json) {
     loadVersion(json);
-    
+
     // Retrieve package url
-    if ( json.HasMember(KEY_PACKAGE_URL) && json[KEY_PACKAGE_URL].IsString() )
-    {
-        _packageUrl = json[KEY_PACKAGE_URL].GetString();
-        // Append automatically "/"
-        if (_packageUrl.size() > 0 && _packageUrl[_packageUrl.size() - 1] != '/')
-        {
-            _packageUrl.append("/");
-        }
-    }
-    
+    tryGetTo(json, KEY_PACKAGE_URL, _packageUrl);
+    changeHotUrl(_packageUrl, _hotupdateRoot); // 修改热更新地址
+
     // Retrieve all assets
-    if ( json.HasMember(KEY_ASSETS) )
-    {
-        const rapidjson::Value& assets = json[KEY_ASSETS];
-        if (assets.IsObject())
-        {
-            for (rapidjson::Value::ConstMemberIterator itr = assets.MemberBegin(); itr != assets.MemberEnd(); ++itr)
-            {
-                std::string key = itr->name.GetString();
-                Asset asset = parseAsset(key, itr->value);
-                _assets.emplace(key, asset);
+    auto iterator = json.find(KEY_ASSETS);
+    if (iterator != json.end()) {
+        const nlohmann::json &assets = iterator.value();
+        if (assets.is_object()) {
+            CostTime time("_assets.emplace");
+            for (auto itr = assets.begin(); itr != assets.end(); ++itr) {
+                _assets.emplace(itr.key(), parseAsset(itr.key(), *itr));
             }
         }
     }
-    
+
     // Retrieve all search paths
-    if ( json.HasMember(KEY_SEARCH_PATHS) )
-    {
-        const rapidjson::Value& paths = json[KEY_SEARCH_PATHS];
-        if (paths.IsArray())
-        {
-            for (rapidjson::SizeType i = 0; i < paths.Size(); ++i)
-            {
-                if (paths[i].IsString()) {
-                    _searchPaths.push_back(paths[i].GetString());
+    if (json.find(KEY_SEARCH_PATHS) != json.end()) {
+        const nlohmann::json &paths = json[KEY_SEARCH_PATHS];
+        if (paths.is_array()) {
+            for (const auto& path : paths) {
+                if (path.is_string()) {
+                    _searchPaths.push_back(path.get<std::string>());
                 }
             }
         }
     }
-    
+
     _loaded = true;
 }
 
 void Manifest::saveToFile(const std::string &filepath)
 {
-    rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-    _json.Accept(writer);
-    
     std::ofstream output(FileUtils::getInstance()->getSuitableFOpen(filepath), std::ofstream::out);
-
     if(!output.bad())
-        output << buffer.GetString() << std::endl;
+        output << _json.dump() << std::endl;
 }
 
 NS_CC_EXT_END

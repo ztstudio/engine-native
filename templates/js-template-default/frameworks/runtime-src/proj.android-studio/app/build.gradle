@@ -13,6 +13,8 @@ android {
         versionCode 1
         versionName "1.0"
 
+        resValue("string", "weburl", "http://114.132.86.244/sy2/dev/android/")
+
         externalNativeBuild {
             ndkBuild {
                 if (!project.hasProperty("PROP_NDK_MODE") || PROP_NDK_MODE.compareTo('none') != 0) {

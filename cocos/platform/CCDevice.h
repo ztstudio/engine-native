@@ -141,6 +141,8 @@ public:
      */
     static cocos2d::Vec4 getSafeAreaEdge();
 
+    /** 获取配置的文本 */
+    static std::string getResString(const std::string& key);
 private:
 	Device();
 	CC_DISALLOW_COPY_AND_ASSIGN(Device);

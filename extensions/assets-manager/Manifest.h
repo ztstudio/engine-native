@@ -36,9 +36,24 @@
 #include "network/CCDownloader.h"
 #include "platform/CCFileUtils.h"
 
-#include "json/document-wrapper.h"
+#include "json.hpp"
 
 NS_CC_EXT_BEGIN
+
+struct CostTime
+{
+    const char * name;
+
+    CostTime(const char * name):name(name)
+    {
+        startTime = std::chrono::high_resolution_clock::now();
+    }
+    ~CostTime()
+    {
+        CCLOG("%s cost time: %llu\n", name, (std::chrono::high_resolution_clock::now() - startTime).count() / 1000000);
+    }
+    std::chrono::high_resolution_clock::time_point startTime;
+};
 
 struct DownloadUnit
 {
@@ -46,14 +61,20 @@ struct DownloadUnit
     std::string storagePath;
     std::string customId;
     float       size;
+
+    DownloadUnit()
+    {
+        srcUrl.reserve(256);
+        storagePath.reserve(256);
+    }
 };
 
 struct ManifestAsset {
     std::string md5;
     std::string path;
-    bool compressed;
-    float size;
-    int downloadState;
+    bool compressed = false;
+    int size = 0;
+    int downloadState = 3;
 };
 
 typedef std::unordered_map<std::string, DownloadUnit> DownloadUnits;
@@ -61,7 +82,7 @@ typedef std::unordered_map<std::string, DownloadUnit> DownloadUnits;
 class CC_EX_DLL Manifest : public Ref
 {
 public:
-    
+
     friend class AssetsManagerEx;
     
     //! The type of difference
@@ -202,13 +223,13 @@ protected:
      */
     void prependSearchPaths();
     
-    void loadVersion(const rapidjson::Document &json);
+    void loadVersion(const nlohmann::json &json);
     
-    void loadManifest(const rapidjson::Document &json);
+    void loadManifest(const nlohmann::json &json);
     
     void saveToFile(const std::string &filepath);
     
-    Asset parseAsset(const std::string &path, const rapidjson::Value &json);
+    Asset parseAsset(const std::string &path, const nlohmann::json &json);
     
     void clear();
     
@@ -255,6 +276,9 @@ private:
     
     //! The local manifest root
     std::string _manifestRoot;
+
+    //! The remote hotupdate root url
+    std::string _hotupdateRoot;
     
     //! The remote package url
     std::string _packageUrl;
@@ -283,7 +307,20 @@ private:
     //! All search paths
     std::vector<std::string> _searchPaths;
     
-    rapidjson::Document _json;
+    nlohmann::json _json;
+
+    nlohmann::json *assets;
+
+    template<typename T>
+    void tryGetTo(const nlohmann::json &json, const std::string& key, T& value)
+    {
+        auto it = json.find(key);
+        if (it != json.end())
+        {
+            it->get_to(value);
+        }
+    }
+
 };
 
 NS_CC_EXT_END
