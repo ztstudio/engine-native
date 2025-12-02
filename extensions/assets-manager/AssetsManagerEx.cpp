@@ -134,7 +134,7 @@ void AssetsManagerEx::init(const std::string& manifestUrl, const std::string& st
                                          int64_t totalBytesReceived,
                                          int64_t totalBytesExpected)
     {
-        this->onProgress(totalBytesExpected, totalBytesReceived, task.requestURL, task.identifier);
+        this->onProgress((double)totalBytesExpected, (double)totalBytesReceived, task.requestURL, task.identifier);
     };
     _downloader->onFileTaskSuccess = [this](const network::DownloadTask& task)
     {
@@ -145,7 +145,7 @@ void AssetsManagerEx::init(const std::string& manifestUrl, const std::string& st
     _cacheManifestPath = _storagePath + MANIFEST_FILENAME;
     _tempManifestPath = _tempStoragePath + TEMP_MANIFEST_FILENAME;
 
-    if (manifestUrl.size() > 0)
+    if (!manifestUrl.empty())
     {
         loadLocalManifest(manifestUrl);
     }
@@ -308,7 +308,8 @@ bool AssetsManagerEx::loadLocalManifest(Manifest* localManifest, const std::stri
 
 bool AssetsManagerEx::loadLocalManifest(const std::string& manifestUrl)
 {
-    if (manifestUrl.size() == 0)
+    CCLOG("AssetsManagerEx::loadLocalManifest url=%s", manifestUrl.c_str());
+    if (manifestUrl.empty())
     {
         return false;
     }
@@ -346,7 +347,7 @@ bool AssetsManagerEx::loadLocalManifest(const std::string& manifestUrl)
     {
         std::vector<std::string> cacheSearchPaths = cachedManifest->getSearchPaths();
         std::vector<std::string> trimmedPaths = searchPaths;
-        for (auto path : cacheSearchPaths)
+        for (const auto& path : cacheSearchPaths)
         {
             const auto pos = std::find(trimmedPaths.begin(), trimmedPaths.end(), path);
             if (pos != trimmedPaths.end())
@@ -710,8 +711,8 @@ void AssetsManagerEx::downloadVersion()
         return;
 
     std::string versionUrl = _localManifest->getVersionFileUrl();
-
-    if (versionUrl.size() > 0)
+    CCLOG("AssetsManagerEx:: downloadVersion %s", versionUrl.c_str());
+    if (!versionUrl.empty())
     {
         _updateState = State::DOWNLOADING_VERSION;
         // Download version file asynchronously
@@ -1009,6 +1010,7 @@ void AssetsManagerEx::updateSucceed()
 
 void AssetsManagerEx::checkUpdate()
 {
+    CCLOGERROR("AssetsManagerEx::Start checkUpdate");
     if (_updateEntry != UpdateEntry::NONE)
     {
         CCLOGERROR("AssetsManagerEx::checkUpdate, updateEntry isn't NONE");

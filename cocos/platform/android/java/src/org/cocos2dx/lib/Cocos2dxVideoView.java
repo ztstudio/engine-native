@@ -257,10 +257,10 @@ public class Cocos2dxVideoView extends SurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
-            this.sendEvent(EVENT_CLICKED);
-        }
-        return true;
+//        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+//            this.sendEvent(EVENT_CLICKED);
+//        }
+        return false;
     }
 
     // ===========================================================

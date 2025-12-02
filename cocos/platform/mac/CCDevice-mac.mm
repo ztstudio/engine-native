@@ -123,6 +123,12 @@ cocos2d::Vec4 Device::getSafeAreaEdge()
     return cocos2d::Vec4();
 }
 
+std::string Device::getResString(const std::string& key)
+{
+    // Default implementation, return empty string
+    return "";
+}
+
 NS_CC_END
 
 #endif // CC_TARGET_PLATFORM == CC_PLATFORM_MAC

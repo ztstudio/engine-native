@@ -96,6 +96,7 @@ Manifest::Manifest(const std::string& manifestUrl/* = ""*/)
     // Init variables
     _fileUtils = FileUtils::getInstance();
     _hotupdateRoot = Device::getResString("weburl");
+    CCLOG("AssetsManagerEx: getResString weburl %s", _hotupdateRoot.c_str());
     if (!_hotupdateRoot.empty() && _hotupdateRoot.back() == '/') // 去掉尾部的'/'
         _hotupdateRoot.pop_back();
     if (!manifestUrl.empty())

@@ -34,6 +34,8 @@ SOFTWARE.
 #define NLOHMANN_JSON_VERSION_MINOR 9
 #define NLOHMANN_JSON_VERSION_PATCH 1
 
+#define JSON_NOEXCEPTION
+
 #include <algorithm> // all_of, find, for_each
 #include <cstddef> // nullptr_t, ptrdiff_t, size_t
 #include <functional> // hash, less
@@ -16454,7 +16456,7 @@ template <class Key, class T, class IgnoredLess = std::less<Key>,
             }
         }
 
-        throw std::out_of_range("key not found");
+        JSON_THROW(std::out_of_range("key not found"));
     }
 
     const T& at(const Key& key) const
@@ -16467,7 +16469,7 @@ template <class Key, class T, class IgnoredLess = std::less<Key>,
             }
         }
 
-        throw std::out_of_range("key not found");
+        JSON_THROW(std::out_of_range("key not found"));
     }
 
     size_type erase(const Key& key)

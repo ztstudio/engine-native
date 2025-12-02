@@ -102,6 +102,12 @@ int Device::getDevicePixelRatio()
     return 1;
 }
 
+std::string Device::getResString(const std::string& key)
+{
+    // Default implementation, return empty string
+    return "";
+}
+
 NS_CC_END
 
 #endif // CC_TARGET_PLATFORM == CC_PLATFORM_WIN32

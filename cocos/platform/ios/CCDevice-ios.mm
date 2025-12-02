@@ -315,4 +315,10 @@ cocos2d::Vec4 Device::getSafeAreaEdge()
     // If running on iOS devices lower than 11.0, return ZERO Vec4.
     return cocos2d::Vec4();
 }
+
+std::string Device::getResString(const std::string& key)
+{
+    // Default implementation, return empty string
+    return "";
+}
 NS_CC_END
