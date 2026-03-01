@@ -36,6 +36,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************"""
 
+import os
 import os.path
 import zipfile
 import shutil
@@ -48,11 +49,12 @@ import socket
 import urlparse
 import select
 
+from distutils.errors import DistutilsError
+from distutils.dir_util import copy_tree, remove_tree
+
 from optparse import OptionParser
 from time import time
 from sys import stdout
-from distutils.errors import DistutilsError
-from distutils.dir_util import copy_tree, remove_tree
 
 
 def delete_folder_except(folder_path, excepts):
@@ -70,6 +72,25 @@ def delete_folder_except(folder_path, excepts):
         else:
             os.remove(full_path)
 
+
+def get_proxy_handler():
+    """Create a proxy handler using environment variables"""
+    import urllib2
+    proxies = {}
+    # Check for http_proxy and https_proxy environment variables
+    http_proxy = os.environ.get('http_proxy') or os.environ.get('HTTP_PROXY')
+    https_proxy = os.environ.get('https_proxy') or os.environ.get('HTTPS_PROXY')
+    
+    if http_proxy:
+        proxies['http'] = http_proxy
+    if https_proxy:
+        proxies['https'] = https_proxy
+    
+    if proxies:
+        print("==> Using proxy settings: %s" % proxies)
+        return urllib2.ProxyHandler(proxies)
+    else:
+        return urllib2.ProxyHandler()
 
 def connect_by_url(uri):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -122,6 +143,12 @@ def select_fastest_url(url_list):
         
     # skip if url is 404 or other errors
     import urllib2
+    
+    # Create proxy handler
+    proxy_handler = get_proxy_handler()
+    opener = urllib2.build_opener(proxy_handler)
+    urllib2.install_opener(opener)
+    
     for url in sorted_list:
         u = None
         try:
@@ -139,7 +166,7 @@ def select_fastest_url(url_list):
         return url_list[0]
 
 
-class UnrecognizedFormat:
+class UnrecognizedFormat(Exception):
     def __init__(self, prompt):
         self._prompt = prompt
 
@@ -190,6 +217,12 @@ class CocosZipInstaller(object):
     def download_file(self):
         print("==> Ready to download '%s' from '%s'" % (self._filename, self._url))
         import urllib2
+        
+        # Create proxy handler
+        proxy_handler = get_proxy_handler()
+        opener = urllib2.build_opener(proxy_handler)
+        urllib2.install_opener(opener)
+        
         try:
             u = urllib2.urlopen(self._url)
         except urllib2.HTTPError as e:
