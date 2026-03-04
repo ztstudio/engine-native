@@ -141,19 +141,28 @@ gulp.task('gen-cocos2d-x', function (cb) {
     cb();
 });
 
-gulp.task('gen-simulator', function (cb) {
+gulp.task('set-python2-path', function (cb) {
+    let python2Path = ExecSync('py -2 -c "import sys; print(sys.executable)"', { encoding: "utf8" });
+    let python2Dir = Path.dirname(python2Path.trim());
+    console.log('Python 2 directory:', python2Dir);
+    process.env.PATH = python2Dir + ';' + process.env.PATH;
+    // console.log(ExecSync('python --version', { encoding: "utf8" }));
+    cb();
+});
+
+gulp.task('gen-simulator', gulp.series('set-python2-path', function (cb) {
     var cocosConsoleRoot = './tools/cocos2d-console/bin';
     var cocosConsoleBin = Path.join(cocosConsoleRoot, process.platform === 'win32' ? 'cocos.bat' : 'cocos');
     var args;
     if (process.platform === 'darwin') {
         args = ['gen-simulator', '-m', 'debug', '-p', 'mac'];
     } else {
-        args = ['gen-simulator', '-c', '-m', 'debug', '-p', 'win32', '--vs', '2017', '--ol', 'en'];
+        args = ['gen-simulator', '-c', '-m', 'debug', '-p', 'win32', '--vs', '2017', '--ol', 'zh'];
     }
     try {
         if (process.platform === 'win32') {
             console.log('Generate simulator with command:', cocosConsoleBin, args.join(' '));
-            var child = spawn('cmd.exe', ['/c', cocosConsoleBin].concat(args));
+            var child = spawn('cmd.exe', ['/c', 'chcp 65001', '&', cocosConsoleBin].concat(args));
         } else {
             var child = spawn(cocosConsoleBin, args);
         }
@@ -180,7 +189,7 @@ gulp.task('gen-simulator', function (cb) {
     } catch (err) {
         cb(err);
     }
-});
+}));
 
 gulp.task('sign-simulator', function (cb) {
     try {
