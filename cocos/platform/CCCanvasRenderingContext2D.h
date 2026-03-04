@@ -104,6 +104,12 @@ public:
     void transform(float a, float b, float c, float d, float e, float f);
     void setTransform(float a, float b, float c, float d, float e, float f);
 
+    // 阴影 begin
+    void set_shadowColor(const std::string& shadowColor);
+    void set_shadowBlur(float shadowBlur);
+    void set_shadowOffsetX(float shadowOffsetX);
+    void set_shadowOffsetY(float shadowOffsetY);
+    // 阴影 end
 private:
     void recreateBufferIfNeeded();
 
@@ -129,6 +135,12 @@ public:
     // Compositing
     std::string _globalCompositeOperation = "source-over";
 
+    // 阴影 begin
+    std::string  _shadowColor = "#000";
+    float _shadowBlur = 1.0f;
+    float _shadowOffsetX = 1.0f;
+    float _shadowOffsetY = 1.0f;
+    // 阴影 end
 private:
 
     CanvasBufferUpdatedCallback _canvasBufferUpdatedCB = nullptr;

@@ -62,6 +62,17 @@ enum class CanvasTextBaseline {
     cocos2d::Color4F _strokeStyle;
     float _lineWidth;
     bool _bold;
+
+    // TODO 虣虣 begin 文字阴影
+    // 阴影颜色
+    cocos2d::Color4F _shadowStyle;
+    // 阴影模糊的宽度
+    float _shadowBlur;
+    // 阴影X偏移量
+    float _shadowOffsetX;
+    // 阴影Y偏移量
+    float _shadowOffsetY;
+    // TODO 虣虣 end
 }
 
 @property (nonatomic, strong) NSFont* font;
@@ -70,6 +81,10 @@ enum class CanvasTextBaseline {
 @property (nonatomic, assign) CanvasTextAlign textAlign;
 @property (nonatomic, assign) CanvasTextBaseline textBaseLine;
 @property (nonatomic, assign) float lineWidth;
+
+@property (nonatomic, assign) float shadowBlur;
+@property (nonatomic, assign) float shadowOffsetX;
+@property (nonatomic, assign) float shadowOffsetY;
 
 @end
 
@@ -81,6 +96,11 @@ enum class CanvasTextBaseline {
 @synthesize textAlign = _textAlign;
 @synthesize textBaseLine = _textBaseLine;
 @synthesize lineWidth = _lineWidth;
+
+@synthesize shadowBlur = _shadowBlur;
+@synthesize shadowOffsetX = _shadowOffsetX;
+@synthesize shadowOffsetY = _shadowOffsetY;
+
 
 -(id) init {
     if (self = [super init]) {
@@ -334,7 +354,10 @@ enum class CanvasTextBaseline {
     CGContextBeginTransparencyLayerWithRect(_context, CGRectMake(0, 0, _width, _height), nullptr);
     CGContextSetTextDrawingMode(_context, kCGTextFill);
 
-    
+    // TODO 虣虣 begin
+    NSColor* color = [NSColor colorWithRed:_shadowStyle.r green:_shadowStyle.g blue:_shadowStyle.b alpha:_shadowStyle.a];
+    CGContextSetShadowWithColor(_context, CGSizeMake(_shadowOffsetX, -_shadowOffsetY), _shadowBlur, color.CGColor);
+    // TODO 虣虣 end
 
     NSAttributedString *stringWithAttributes =[[[NSAttributedString alloc] initWithString:text
                                                                                attributes:_tokenAttributesDict] autorelease];
@@ -497,6 +520,15 @@ enum class CanvasTextBaseline {
 #else
     [_path addLineToPoint: NSMakePoint(x, y)];
 #endif
+}
+
+// 设置字体阴影相关属性(颜色，粗细，偏移)
+-(void) setShadowStyleWithRed:(CGFloat) r green:(CGFloat) g blue:(CGFloat) b
+    alpha:(CGFloat) a {
+    _shadowStyle.r = r;
+    _shadowStyle.g = g;
+    _shadowStyle.b = b;
+    _shadowStyle.a = a;
 }
 
 @end
@@ -846,5 +878,30 @@ void CanvasRenderingContext2D::setTransform(float a, float b, float c, float d, 
 {
     //SE_LOGE("%s isn't implemented!\n", __FUNCTION__);
 }
+
+// CCCanvasRenderingContext2D-apple.mm
+// TODO 虣虣 begin 设置相关属性,共JS调用。
+// 设置字体阴影相关属性(颜色，粗细，偏移)
+
+void CanvasRenderingContext2D::set_shadowColor(const std::string &shadowColor) {
+    CSSColorParser::Color color = CSSColorParser::parse(shadowColor);
+    [_impl setShadowStyleWithRed:color.r/255.0f green:color.g/255.0f blue:color.b/255.0f alpha:color.a];
+}
+
+void CanvasRenderingContext2D::set_shadowBlur(float shadowBlur) {
+    _shadowBlur = shadowBlur;
+    _impl.shadowBlur = _shadowBlur;
+}
+
+void CanvasRenderingContext2D::set_shadowOffsetX(float shadowOffsetX) {
+    _shadowOffsetX = shadowOffsetX;
+    _impl.shadowOffsetX = shadowOffsetX;
+}
+
+void CanvasRenderingContext2D::set_shadowOffsetY(float shadowOffsetY) {
+    _shadowOffsetY = shadowOffsetY;
+    _impl.shadowOffsetY = _shadowOffsetY;
+}
+// TODO 虣虣 end
 
 NS_CC_END

@@ -69,6 +69,16 @@ public class CanvasRenderingContext2DImpl {
     private int mStrokeStyleG = 0;
     private int mStrokeStyleB = 0;
     private int mStrokeStyleA = 255;
+    
+    // TODO 虣虣 阴影 begin
+    private int mShadowStyleR = 0;
+    private int mShadowStyleG = 0;
+    private int mShadowStyleB = 0;
+    private int mShadowStyleA = 0;
+    private float mShadowBlur = 0;
+    private float mShadowOffsetX = 0;
+    private float mShadowOffsetY = 0;
+    // TODO 虣虣 阴影 end
 
     private String mFontName = "Arial";
     private float mFontSize = 40.0f;
@@ -376,6 +386,12 @@ public class CanvasRenderingContext2DImpl {
         createTextPaintIfNeeded();
         mTextPaint.setARGB(mFillStyleA, mFillStyleR, mFillStyleG, mFillStyleB);
         mTextPaint.setStyle(Paint.Style.FILL);
+
+        // TODO 虣虣 阴影 begin
+        int color = Color.argb(mShadowStyleA, mShadowStyleR, mShadowStyleG, mShadowStyleB);
+        mTextPaint.setShadowLayer(mShadowBlur, mShadowOffsetX, mShadowOffsetY, color);
+        // TODO 虣虣 阴影 end
+
         scaleX(mTextPaint, text, maxWidth);
         Point pt = convertDrawPoint(new Point(x, y), text);
         mCanvas.drawText(text, pt.x, pt.y, mTextPaint);
@@ -443,6 +459,29 @@ public class CanvasRenderingContext2DImpl {
         mStrokeStyleB = (int)(b * 255.0f);
         mStrokeStyleA = (int)(a * 255.0f);
     }
+
+    // TODO 虣虣 阴影 begin
+    // 设置阴影颜色
+    private void setShadowColor(float r, float g, float b, float a) {
+        // Log.d(TAG, "setShadowStyle: " + r + ", " + g + ", " + b + ", " + a);
+        mShadowStyleR = (int)(r * 255.0f);
+        mShadowStyleG = (int)(g * 255.0f);
+        mShadowStyleB = (int)(b * 255.0f);
+        mShadowStyleA = (int)(a * 255.0f);
+    }
+    // 设置描边宽度
+    private void setShadowBlur(float shadowBlur) {
+        mShadowBlur = shadowBlur;
+    }
+    // 设置描边的偏移X
+    private void setShadowOffsetX(float shadowOffsetX) {
+        mShadowOffsetX = shadowOffsetX;
+    }
+    // 设置描边的偏移Y
+    private void setShadowOffsetY(float shadowOffsetY) {
+        mShadowOffsetY = shadowOffsetY;
+    }
+    // TODO 虣虣 阴影 end
 
     private void setLineWidth(float lineWidth) {
         mLineWidth = lineWidth;

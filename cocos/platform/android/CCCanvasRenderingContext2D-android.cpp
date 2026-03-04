@@ -256,6 +256,25 @@ public:
         JniHelper::getEnv()->DeleteLocalRef(arr);
     }
 
+    // TODO 虣虣 阴影 begin
+    void setShadowColor(float r, float g, float b, float a)
+    {
+        JniHelper::callObjectVoidMethod(_obj, JCLS_CANVASIMPL, "setShadowColor", r, g, b, a);
+    }
+    void setShadowBlur(float shadowBlur)
+    {
+        JniHelper::callObjectVoidMethod(_obj, JCLS_CANVASIMPL, "setShadowBlur", shadowBlur);
+    }
+    void setShadowOffsetX(float shadowOffsetX)
+    {
+        JniHelper::callObjectVoidMethod(_obj, JCLS_CANVASIMPL, "setShadowOffsetX", shadowOffsetX);
+    }
+    void setShadowOffsetY(float shadowOffsetY)
+    {
+        JniHelper::callObjectVoidMethod(_obj, JCLS_CANVASIMPL, "setShadowOffsetY", shadowOffsetY);
+    }
+    // TODO 虣虣 阴影 end
+
 private:
     jobject _obj = nullptr;
     Data _data;
@@ -615,5 +634,24 @@ void CanvasRenderingContext2D::setTransform(float a, float b, float c, float d, 
 {
     // SE_LOGE("%s isn't implemented!\n", __FUNCTION__);
 }
+
+// TODO 虣虣 阴影 begin
+void CanvasRenderingContext2D::set_shadowColor(const std::string& shadowColor) {
+    CSSColorParser::Color color = CSSColorParser::parse(shadowColor);
+    _impl->setShadowColor(color.r/255.0f, color.g/255.0f, color.b/255.0f, color.a);
+}
+
+void CanvasRenderingContext2D::set_shadowBlur(float shadowBlur) {
+    _impl->setShadowBlur(shadowBlur);
+}
+
+void CanvasRenderingContext2D::set_shadowOffsetX(float shadowOffsetX) {
+    _impl->setShadowOffsetX(shadowOffsetX);
+}
+
+void CanvasRenderingContext2D::set_shadowOffsetY(float shadowOffsetY) {
+    _impl->setShadowOffsetY(shadowOffsetY);
+}
+// TODO 虣虣 阴影 end
 
 NS_CC_END
