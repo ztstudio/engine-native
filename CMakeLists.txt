@@ -433,6 +433,7 @@ list(APPEND CC_COCOS_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/extensions/assets-manager/CCEventAssetsManagerEx.h
     ${CMAKE_CURRENT_LIST_DIR}/extensions/assets-manager/Manifest.cpp
     ${CMAKE_CURRENT_LIST_DIR}/extensions/assets-manager/Manifest.h
+    ${CMAKE_CURRENT_LIST_DIR}/extensions/assets-manager/json.hpp
 )
 
 ##### USE_GFX_RENDERER

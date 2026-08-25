@@ -763,6 +763,7 @@
         "extensions/assets-manager/CCEventAssetsManagerEx.h", 
         "extensions/assets-manager/Manifest.cpp", 
         "extensions/assets-manager/Manifest.h", 
+        "extensions/assets-manager/json.hpp", 
         "extensions/cocos-ext.h", 
         "external/CMakeLists.txt", 
         "external/android/Android.mk", 
